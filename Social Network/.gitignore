@@ -1,0 +1,21 @@
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# Log files
+logs/
+*.log
+
+# Dependency directories
+pnpm-lock.yaml
+yarn.lock
+
+# Optional: OS-specific files
+.DS_Store
+Thumbs.db
