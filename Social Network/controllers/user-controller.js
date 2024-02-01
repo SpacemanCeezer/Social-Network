@@ -1,110 +1,132 @@
+// userController.js
+
 const { User, Thought } = require('../models');
 
 const userController = {
-  // Get all users
-  getAllUsers(req, res) {
-    User.find({})
-      .populate({
-        path: 'thoughts friends',
-        select: '-__v',
-      })
-      .select('-__v')
-      .sort({ _id: -1 })
-      .then(dbUserData => res.json(dbUserData))
-      .catch(err => {
-        console.log(err);
-        res.status(500).json(err);
-      });
+  getAllUsers: async (req, res) => {
+    try {
+      const users = await User.find({})
+        .populate({
+          path: 'thoughts friends',
+          select: '-__v',
+        })
+        .select('-__v')
+        .sort({ _id: -1 });
+
+      res.json(users);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "An unexpected error occurred while fetching users." });
+    }
   },
 
-  // Get single user by ID
-  getUserById({ params }, res) {
-    User.findOne({ _id: params.id })
-      .populate({
-        path: 'thoughts friends',
-        select: '-__v',
-      })
-      .select('-__v')
-      .then(dbUserData => {
-        if (!dbUserData) {
-          res.status(404).json({ message: 'No user found with this ID' });
-          return;
-        }
-        res.json(dbUserData);
-      })
-      .catch(err => {
-        console.log(err);
-        res.status(500).json(err);
-      });
+  getUserById: async ({ params }, res) => {
+    try {
+      const user = await User.findOne({ _id: params.id })
+        .populate({
+          path: 'thoughts friends',
+          select: '-__v',
+        })
+        .select('-__v');
+
+      if (!user) {
+        res.status(404).json({ message: 'User not found with this ID' });
+        return;
+      }
+
+      res.json(user);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "An unexpected error occurred while fetching the user." });
+    }
   },
 
-  // Create a new user
-  createUser({ body }, res) {
-    User.create(body)
-      .then(dbUserData => res.json(dbUserData))
-      .catch(err => res.status(400).json(err));
+  createUser: async ({ body }, res) => {
+    try {
+      const createdUser = await User.create(body);
+      res.json(createdUser);
+    } catch (error) {
+      console.error(error);
+      res.status(400).json({ error: "An unexpected error occurred while creating the user." });
+    }
   },
 
-  // Update a user by ID
-  updateUser({ params, body }, res) {
-    User.findOneAndUpdate({ _id: params.id }, body, { new: true, runValidators: true })
-      .then(dbUserData => {
-        if (!dbUserData) {
-          res.status(404).json({ message: 'No user found with this ID' });
-          return;
-        }
-        res.json(dbUserData);
-      })
-      .catch(err => res.status(400).json(err));
+  updateUser: async ({ params, body }, res) => {
+    try {
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: params.id },
+        body,
+        { new: true, runValidators: true }
+      );
+
+      if (!updatedUser) {
+        res.status(404).json({ message: 'User not found with this ID' });
+        return;
+      }
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error(error);
+      res.status(400).json({ error: "An unexpected error occurred while updating the user." });
+    }
   },
 
-  // Delete a user by ID
-  deleteUser({ params }, res) {
-    User.findOneAndDelete({ _id: params.id })
-      .then(dbUserData => {
-        if (!dbUserData) {
-          res.status(404).json({ message: 'No user found with this ID' });
-          return;
-        }
-        // Bonus: Remove user's associated thoughts
-        return Thought.deleteMany({ username: dbUserData.username });
-      })
-      .then(() => res.json({ message: 'User and associated thoughts deleted' }))
-      .catch(err => res.status(400).json(err));
+  deleteUser: async ({ params }, res) => {
+    try {
+      const deletedUser = await User.findOneAndDelete({ _id: params.id });
+
+      if (!deletedUser) {
+        res.status(404).json({ message: 'User not found with this ID' });
+        return;
+      }
+
+      await Thought.deleteMany({ username: deletedUser.username });
+
+      res.json({ message: 'User and associated thoughts deleted' });
+    } catch (error) {
+      console.error(error);
+      res.status(400).json({ error: "An unexpected error occurred while deleting the user." });
+    }
   },
 
-  // Add a new friend to a user's friend list
-  addFriend({ params }, res) {
-    User.findOneAndUpdate(
-      { _id: params.userId },
-      { $push: { friends: params.friendId } },
-      { new: true, runValidators: true }
-    )
-      .then(dbUserData => {
-        if (!dbUserData) {
-          res.status(404).json({ message: 'No user found with this ID' });
-          return;
-        }
-        res.json(dbUserData);
-      })
-      .catch(err => res.json(err));
-  },
+  addFriend: async ({ params }, res) => {
+    try {
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: params.userId },
+        { $push: { friends: params.friendId } },
+        { new: true, runValidators: true }
+      );
 
-  // Remove a friend from a user's friend list
-  removeFriend({ params }, res) {
-    User.findOneAndUpdate(
-      { _id: params.userId },
-      { $pull: { friends: params.friendId } },
-      { new: true }
-    )
-      .then(dbUserData => {
-        if (!dbUserData) {
-          res.status(404).json({ message: 'No user found with this ID' });
-          return;
-        }
-        res.json(dbUserData);
-      })
-      .catch(err => res.json(err));
+      if (!updatedUser) {
+        res.status(404).json({ message: 'User not found with this ID' });
+        return;
+      }
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error(error);
+      res.json({ error: "An unexpected error occurred while adding the friend." });
+    }
+  },
+  
+  removeFriend: async ({ params }, res) => {
+    try {
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: params.userId },
+        { $pull: { friends: params.friendId } },
+        { new: true }
+      );
+
+      if (!updatedUser) {
+        res.status(404).json({ message: 'User not found with this ID' });
+        return;
+      }
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error(error);
+      res.json({ error: "An unexpected error occurred while removing the friend." });
+    }
   },
 };
 
